@@ -49,7 +49,11 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
     final_camera_rotations = final_camera_params[:, :3]
     
     # Create 3D plot with two subplots (before and after)
-    fig = plt.figure(figsize=(15, 8))
+    fig = plt.figure(figsize=(15, 10))
+    
+    # Add the visualization angle text above the plots
+    fig.text(0.5, 0.95, 'Viewing Angle: Initially set to Camera 0 perspective', 
+             ha='center', va='center', fontsize=12)
     
     # Before optimization subplot
     ax1 = fig.add_subplot(121, projection='3d')
@@ -165,12 +169,44 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
     # Set the initial view to match the first camera
     try:
         initial_elev, initial_azim = get_view_angles_from_camera(initial_camera_params)
-        final_elev, final_azim = get_view_angles_from_camera(final_camera_params)
         ax1.view_init(elev=initial_elev, azim=initial_azim)
-        ax2.view_init(elev=final_elev, azim=final_azim)
+        ax2.view_init(elev=initial_elev, azim=initial_azim)  # Use same viewing angle for both
+        
+        # Update the viewing angle text
+        fig.text(0.5, 0.95, f'Viewing Angle: Elev={initial_elev:.1f}°, Azim={initial_azim:.1f}° (Camera 0 perspective)', 
+                ha='center', va='center', fontsize=12)
+        
     except (ImportError, ValueError):
         # Fallback if we can't compute the viewing angle
-        pass
+        default_elev, default_azim = 20, -60
+        ax1.view_init(elev=default_elev, azim=default_azim)
+        ax2.view_init(elev=default_elev, azim=default_azim)
     
-    plt.tight_layout()
-    return plt
+    # Add a synchronized view function to keep plots aligned during rotation
+    def on_move(event):
+        if event.inaxes == ax1:
+            if hasattr(event, 'button') and event.button in [1, 3]:  # Check if it's a mouse drag
+                # Get the current view angles from the first plot
+                elev, azim = ax1.elev, ax1.azim
+                # Apply the same view to the second plot
+                ax2.view_init(elev=elev, azim=azim)
+                # Update the viewing angle text
+                fig.texts[0].set_text(f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°')
+                # Redraw the figure
+                fig.canvas.draw_idle()
+        elif event.inaxes == ax2:
+            if hasattr(event, 'button') and event.button in [1, 3]:  # Check if it's a mouse drag
+                # Get the current view angles from the second plot
+                elev, azim = ax2.elev, ax2.azim
+                # Apply the same view to the first plot
+                ax1.view_init(elev=elev, azim=azim)
+                # Update the viewing angle text
+                fig.texts[0].set_text(f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°')
+                # Redraw the figure
+                fig.canvas.draw_idle()
+    
+    # Connect the function to the mouse motion event
+    fig.canvas.mpl_connect('motion_notify_event', on_move)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust layout to make room for title
+    return fig

@@ -55,10 +55,16 @@ def main():
     # Visualize if requested
     if args.visualize:
         # Plot residuals
-        plot_residuals(f0, res.fun)
+        residual_fig = plot_residuals(f0, res.fun)
         
         # Visualize 3D reconstruction before and after optimization
-        visualize_reconstruction(x0, res.x, n_cameras, n_points)
+        reconstruction_fig = visualize_reconstruction(x0, res.x, n_cameras, n_points)
+        
+        print("\nVisualization controls:")
+        print("- Rotate: Click and drag with the mouse")
+        print("- Zoom: Use the mouse wheel")
+        print("- Both plots rotate together to maintain the same viewing angle")
+        print("- Current viewing angle is displayed above the plots")
         
         # Show all plots
         plt.show()
