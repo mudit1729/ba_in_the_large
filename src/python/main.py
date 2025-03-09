@@ -2,19 +2,27 @@ from __future__ import print_function
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 from ba_in_the_large import (
     read_bal_data, 
     solve_bundle_adjustment, 
     plot_residuals, 
     display_optimization_results,
+    visualize_reconstruction,
     prettylist
 )
 
-FILE_NAME = "problem-49-7776-pre.txt"
-
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Bundle Adjustment in the Large')
+    parser.add_argument('--file', type=str, default="problem-49-7776-pre.txt",
+                        help='Path to the BAL dataset file')
+    parser.add_argument('--visualize', action='store_true',
+                        help='Visualize the optimization results and 3D reconstruction')
+    args = parser.parse_args()
+    
     # Read the BAL dataset
-    camera_params, points_3d, camera_indices, point_indices, points_2d = read_bal_data(FILE_NAME)
+    camera_params, points_3d, camera_indices, point_indices, points_2d = read_bal_data(args.file)
     
     # Print information
     n_cameras = camera_params.shape[0]
@@ -44,9 +52,16 @@ def main():
     from ba_in_the_large import utils
     display_optimization_results(x0, res.x, t1 - t0, utils)
     
-    # Plot residuals
-    plot = plot_residuals(f0, res.fun)
-    plt.show()
+    # Visualize if requested
+    if args.visualize:
+        # Plot residuals
+        plot_residuals(f0, res.fun)
+        
+        # Visualize 3D reconstruction before and after optimization
+        visualize_reconstruction(x0, res.x, n_cameras, n_points)
+        
+        # Show all plots
+        plt.show()
 
 if __name__ == "__main__":
     main()
