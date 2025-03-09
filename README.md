@@ -15,10 +15,12 @@ Bundle adjustment is a key component in computer vision applications like 3D rec
 - Efficient sparse bundle adjustment implementation in Python (using SciPy)
 - High-performance C++ implementation using Ceres Solver (10-12x faster)
 - Support for large datasets with thousands of cameras and points
-- Interactive 3D visualization of reconstruction before and after optimization
+- Interactive 3D visualization with GPU acceleration using Plotly
+- 3D camera representations as triangular meshes for better interpretation
 - Synchronized interactive views with real-time angle information
 - Command-line interface with comprehensive options
 - Performance comparison between Python and C++ implementations
+- HTML export capabilities for sharing results
 
 ## Requirements
 
@@ -35,6 +37,11 @@ Bundle adjustment is a key component in computer vision applications like 3D rec
 - CMake 3.10+
 - C++14 compatible compiler
 - pybind11
+
+### Visualization
+- **Basic**: Matplotlib (included in default requirements)
+- **Advanced**: Plotly for GPU-accelerated 3D visualization
+  - Install with: `pip install plotly`
 
 ## Installation
 
@@ -98,16 +105,37 @@ python src/python/main.py --file /path/to/dataset.txt --solver both
 To visualize the optimization results and 3D reconstruction:
 
 ```bash
+# Default - use GPU-accelerated Plotly visualization
 python src/python/main.py --file /path/to/dataset.txt --visualize --solver ceres
+
+# Specify the visualization engine explicitly
+python src/python/main.py --file /path/to/dataset.txt --visualize --solver ceres --engine plotly
+
+# Fall back to matplotlib if needed
+python src/python/main.py --file /path/to/dataset.txt --visualize --solver ceres --engine matplotlib
+
+# Save Plotly visualization to HTML file
+python src/python/main.py --file /path/to/dataset.txt --visualize --solver ceres --output my_visualization.html
 ```
 
 The visualization includes:
 - Comparison of camera positions and 3D points before and after optimization
+- 3D camera models represented as triangle meshes
 - Plots of residuals before and after optimization
 - Interactive 3D view with synchronized rotation for before/after comparison
+- HTML export for easy sharing of results
 
 ### Visualization Controls
 
+#### Plotly (GPU-accelerated)
+- **Rotate**: Click and drag
+- **Zoom**: Mouse wheel or pinch gesture
+- **Pan**: Right-click and drag
+- **Reset View**: Double-click
+- **Full-screen**: Click the expand icon
+- Visualization works in any modern browser
+
+#### Matplotlib
 - **Rotate**: Click and drag with the mouse
 - **Zoom**: Use the mouse wheel
 - Both plots rotate together to maintain the same viewing angle
@@ -142,7 +170,8 @@ The core implementation consists of:
 - `src/python/ba_in_the_large/`: Core Python implementation
   - `ba_solver.py`: Bundle adjustment solver (Python and C++ interface)
   - `utils.py`: Utility functions
-  - `visualizer.py`: Visualization tools
+  - `visualizer.py`: Matplotlib-based visualization tools
+  - `plotly_visualizer.py`: GPU-accelerated Plotly visualization with 3D camera meshes
 - `src/cpp/`: C++ implementation
   - `ba_core.h` and `ba_core.cpp`: Ceres Solver implementation
   - `pybind_wrapper.cpp`: pybind11 bindings for Python integration
@@ -150,6 +179,7 @@ The core implementation consists of:
 - `src/python/main.py`: Command-line interface
 - `setup.py`: Package setup with C++ extension building
 - `export_for_llm.py`: Tool to export code for language models
+- `outputs/`: Directory for visualization outputs and HTML files
 
 ## Performance
 
