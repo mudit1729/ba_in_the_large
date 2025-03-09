@@ -77,24 +77,60 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
     ax2.set_title('After Optimization')
     ax2.legend()
     
-    # Set equal aspect ratio for both plots
-    # Calculate ranges for consistent scaling
-    all_points = np.vstack((initial_points_3d, final_points_3d))
-    max_range = np.array([
-        all_points[:, 0].max() - all_points[:, 0].min(),
-        all_points[:, 1].max() - all_points[:, 1].min(),
-        all_points[:, 2].max() - all_points[:, 2].min()
-    ]).max() / 2.0
+    # Set appropriate view for each plot
+    def calculate_view_bounds(camera_positions, points_3d, camera_idx=0):
+        """Calculate appropriate view bounds from a camera's perspective."""
+        # Get the selected camera's position
+        camera_pos = camera_positions[camera_idx]
+        
+        # Calculate distances from the camera to all 3D points
+        distances = np.linalg.norm(points_3d - camera_pos, axis=1)
+        
+        # Find points that are within a reasonable distance (exclude outliers)
+        # Use a percentile threshold to define "reasonable"
+        threshold_distance = np.percentile(distances, 95)  # 95th percentile
+        visible_points = points_3d[distances <= threshold_distance]
+        
+        if len(visible_points) < 10:  # If too few points, use all points
+            visible_points = points_3d
+            
+        # Calculate the bounding box of visible points
+        if len(visible_points) > 0:
+            min_x, min_y, min_z = np.min(visible_points, axis=0)
+            max_x, max_y, max_z = np.max(visible_points, axis=0)
+            
+            # Calculate center and range
+            center_x = (min_x + max_x) / 2
+            center_y = (min_y + max_y) / 2
+            center_z = (min_z + max_z) / 2
+            
+            # Calculate appropriate range for zoom level, adding a margin
+            range_x = max(max_x - min_x, 1e-5) * 1.2  # Avoid zero range
+            range_y = max(max_y - min_y, 1e-5) * 1.2
+            range_z = max(max_z - min_z, 1e-5) * 1.2
+            
+            max_range = max(range_x, range_y, range_z) / 2
+            
+            return center_x, center_y, center_z, max_range
+        else:
+            # Fallback if no points are found
+            return camera_pos[0], camera_pos[1], camera_pos[2], 10.0
     
-    mid_x = (all_points[:, 0].max() + all_points[:, 0].min()) * 0.5
-    mid_y = (all_points[:, 1].max() + all_points[:, 1].min()) * 0.5
-    mid_z = (all_points[:, 2].max() + all_points[:, 2].min()) * 0.5
+    # Calculate view bounds for both initial and final views
+    initial_center_x, initial_center_y, initial_center_z, initial_range = calculate_view_bounds(
+        initial_camera_positions, initial_points_3d)
     
-    # Apply same scaling to both plots
-    for ax in [ax1, ax2]:
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+    final_center_x, final_center_y, final_center_z, final_range = calculate_view_bounds(
+        final_camera_positions, final_points_3d)
+    
+    # Apply the calculated view bounds to each plot
+    ax1.set_xlim(initial_center_x - initial_range, initial_center_x + initial_range)
+    ax1.set_ylim(initial_center_y - initial_range, initial_center_y + initial_range)
+    ax1.set_zlim(initial_center_z - initial_range, initial_center_z + initial_range)
+    
+    ax2.set_xlim(final_center_x - final_range, final_center_x + final_range)
+    ax2.set_ylim(final_center_y - final_range, final_center_y + final_range)
+    ax2.set_zlim(final_center_z - final_range, final_center_z + final_range)
     
     # Set the viewing angle to be from the first camera's perspective
     # We need to compute the viewing angles from the rotation matrix
