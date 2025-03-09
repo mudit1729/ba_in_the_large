@@ -6,7 +6,7 @@ import argparse
 from ba_in_the_large import (
     read_bal_data, 
     solve_bundle_adjustment, 
-    plot_residuals, 
+    plot_residuals,
     display_optimization_results,
     visualize_reconstruction,
     prettylist
