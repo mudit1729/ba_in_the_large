@@ -71,6 +71,7 @@ def generate_camera_triangles(camera_positions, camera_rotations, scale=0.1):
 def create_camera_mesh(camera_mesh):
     """Create mesh3d object for a camera from its vertices."""
     vertices = camera_mesh['vertices']
+    camera_idx = camera_mesh['index']
     
     # Create triangular faces for the pyramid
     # Each face connects the apex (index 0) with two adjacent base vertices
@@ -90,15 +91,19 @@ def create_camera_mesh(camera_mesh):
     y = [v[1] for v in vertices]
     z = [v[2] for v in vertices]
     
-    # Create the 3D mesh
+    # Create hover text with camera details
+    hover_text = f"Camera {camera_idx}"
+    
+    # Create the 3D mesh with more transparency
     mesh = go.Mesh3d(
         x=x, y=y, z=z,
         i=i, j=j, k=k,
         color=camera_mesh['color'],
-        opacity=0.8,
+        opacity=0.2,  # More transparent
         hoverinfo='text',
-        text=f"Camera {camera_mesh['index']}",
+        text=hover_text,
         showlegend=False,
+        legendgroup="cameras",  # Group with the toggle
     )
     
     return mesh
@@ -159,7 +164,7 @@ def visualize_reconstruction_plotly(initial_params, final_params, n_cameras, n_p
         horizontal_spacing=0.05,
     )
     
-    # Add 3D point clouds
+    # Add 3D point clouds - these always remain visible
     # Before optimization
     fig.add_trace(
         go.Scatter3d(
@@ -172,7 +177,9 @@ def visualize_reconstruction_plotly(initial_params, final_params, n_cameras, n_p
                 color='blue',
                 opacity=0.6
             ),
-            name='3D Points (Before)',
+            name='Points',
+            legendgroup='points',  # Group points together
+            showlegend=False,      # Don't show in legend
         ),
         row=1, col=1
     )
@@ -189,19 +196,39 @@ def visualize_reconstruction_plotly(initial_params, final_params, n_cameras, n_p
                 color='blue',
                 opacity=0.6
             ),
-            name='3D Points (After)',
+            name='Points',
+            legendgroup='points',  # Group points together
+            showlegend=False,      # Don't show in legend
         ),
         row=1, col=2
     )
     
-    # Add camera meshes
+    # Add camera meshes - these will be toggled with the legend
     for cam_mesh in initial_camera_meshes:
         mesh = create_camera_mesh(cam_mesh)
+        mesh.name = 'Show Cameras'  # Common name for toggling
+        mesh.legendgroup = 'cameras'  # Group all cameras
+        mesh.showlegend = False  # Only show one legend entry
         fig.add_trace(mesh, row=1, col=1)
     
     for cam_mesh in final_camera_meshes:
         mesh = create_camera_mesh(cam_mesh)
+        mesh.name = 'Show Cameras'  # Common name for toggling
+        mesh.legendgroup = 'cameras'  # Group all cameras
+        mesh.showlegend = False  # Only show one legend entry
         fig.add_trace(mesh, row=1, col=2)
+    
+    # Add a single legend item for cameras that will act as a toggle
+    camera_toggle = go.Scatter3d(
+        x=[None], y=[None], z=[None],
+        mode='markers',
+        marker=dict(size=0),
+        name='Show Cameras',
+        showlegend=True,     # This will be the only legend item
+        visible=True,
+        legendgroup='cameras',
+    )
+    fig.add_trace(camera_toggle, row=1, col=1)
     
     # Update layout for better visualization
     camera = dict(
@@ -225,6 +252,18 @@ def visualize_reconstruction_plotly(initial_params, final_params, n_cameras, n_p
         height=800,
         width=1400,
         template="plotly_dark",
+        showlegend=True,       # Show legend for camera toggle
+        legend=dict(           # Configure the legend
+            title=dict(text=""), # No title needed for a single item
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor="rgba(0,0,0,0.3)",
+            bordercolor="rgba(255,255,255,0.2)",
+            borderwidth=1,
+            itemsizing='constant'  # Keep checkbox size consistent
+        )
     )
     
     # Add a note about controls for the user
@@ -238,23 +277,19 @@ def visualize_reconstruction_plotly(initial_params, final_params, n_cameras, n_p
     
     fig.update_layout(annotations=annotations)
     
-    # Add JavaScript for shared camera movement between subplots
+    # Add proper legend click handler
     fig.update_layout(
-        updatemenus=[{
-            'buttons': [{
-                'args': [None, {'frame': {'duration': 500, 'redraw': True}, 'fromcurrent': True}],
-                'label': 'Sync Views',
-                'method': 'animate'
-            }],
-            'direction': 'left',
-            'pad': {'r': 10, 't': 10},
-            'showactive': False,
-            'type': 'buttons',
-            'x': 0.1,
-            'xanchor': 'right',
-            'y': 0,
-            'yanchor': 'top'
-        }]
+        uirevision='same',  # Keep the same view state when toggling
+        hovermode='closest'
     )
+    
+    # Fix legend click handling for toggling camera visibility
+    fig.data[0]['visible'] = True  # Ensure points remain visible
+    
+    # Legend clicking behavior: use built-in toggling
+    for i, trace in enumerate(fig.data):
+        if hasattr(trace, 'legendgroup') and trace.legendgroup == 'cameras':
+            # Initially show cameras
+            trace.visible = True
     
     return fig
