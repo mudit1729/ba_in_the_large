@@ -1,6 +1,7 @@
 # Bundle Adjustment in the Large
 
 A Python implementation of bundle adjustment optimization for large-scale structure from motion problems, with optional C++ acceleration using Ceres Solver.
+The visualization is done using plotly ( GPU accelerated )
 
 ![Bundle Adjustment Optimization Result](./outputs/final_output.png)
 
