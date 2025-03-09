@@ -1,6 +1,19 @@
 import numpy as np
 from scipy.sparse import lil_matrix
 from scipy.optimize import least_squares
+import warnings
+import time
+
+# Import C++ implementation if available, otherwise use fallback mode
+try:
+    from .ba_cpp import solve_bundle_adjustment as solve_bundle_adjustment_ceres
+    from .ba_cpp import compute_residuals as compute_residuals_ceres
+    CERES_AVAILABLE = True
+except ImportError:
+    CERES_AVAILABLE = False
+    warnings.warn("Ceres Solver C++ implementation not available. "
+                 "Using SciPy implementation only. To use Ceres Solver, "
+                 "make sure the ba_cpp extension is built.")
 
 def rotate(points, rot_vecs):
     """Rotate points by given rotation vectors.
@@ -60,7 +73,8 @@ def bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indice
     return A
 
 
-def solve_bundle_adjustment(camera_params, points_3d, camera_indices, point_indices, points_2d, verbose=2):
+def solve_bundle_adjustment_scipy(camera_params, points_3d, camera_indices, point_indices, points_2d, verbose=2):
+    """Solve bundle adjustment using SciPy's least_squares optimizer."""
     n_cameras = camera_params.shape[0]
     n_points = points_3d.shape[0]
 
@@ -73,3 +87,86 @@ def solve_bundle_adjustment(camera_params, points_3d, camera_indices, point_indi
                         args=(n_cameras, n_points, camera_indices, point_indices, points_2d))
     
     return res
+
+
+def solve_bundle_adjustment(camera_params, points_3d, camera_indices, point_indices, points_2d, 
+                           verbose=2, use_ceres=True):
+    """Solve bundle adjustment using either Ceres Solver (C++) or SciPy.
+    
+    Args:
+        camera_params: Camera parameters (n_cameras, 9)
+        points_3d: 3D points (n_points, 3)
+        camera_indices: Camera indices for each observation
+        point_indices: Point indices for each observation
+        points_2d: 2D observations (n_observations, 2)
+        verbose: Verbosity level (0=silent, 1=minimal, 2=detailed)
+        use_ceres: Whether to use Ceres Solver C++ implementation if available
+        
+    Returns:
+        Result object with optimized parameters
+    """
+    # Use Ceres if requested and available
+    if use_ceres and CERES_AVAILABLE:
+        if verbose > 0:
+            print("Using Ceres Solver C++ implementation...")
+        
+        start_time = time.time()
+        
+        # Call the C++ implementation
+        result = solve_bundle_adjustment_ceres(
+            camera_params, 
+            points_3d, 
+            camera_indices, 
+            point_indices, 
+            points_2d,
+            verbose > 1  # Convert verbose level
+        )
+        
+        elapsed_time = time.time() - start_time
+        
+        # Get results
+        success = result["success"]
+        camera_params_result = result["camera_params"]
+        points_3d_result = result["points_3d"]
+        residuals = result["residuals"]
+        
+        # Create a result object similar to SciPy's for compatibility
+        class CeresResult:
+            def __init__(self, success, x, fun, elapsed_time):
+                self.success = success
+                self.x = x
+                self.fun = fun
+                self.elapsed_time = elapsed_time
+        
+        # Combine parameters into a single array like the SciPy result
+        x = np.hstack((camera_params_result.ravel(), points_3d_result.ravel()))
+        
+        # Create result object
+        res = CeresResult(
+            success=success,
+            x=x,
+            fun=residuals.ravel(),
+            elapsed_time=elapsed_time
+        )
+        
+        if verbose > 0:
+            print(f"Ceres optimization {'succeeded' if success else 'failed'}")
+            print(f"Optimization took {elapsed_time:.2f} seconds")
+        
+        return res
+    else:
+        # Fall back to SciPy implementation
+        if use_ceres and not CERES_AVAILABLE:
+            warnings.warn("Ceres Solver not available, falling back to SciPy implementation")
+        
+        if verbose > 0:
+            print("Using SciPy implementation...")
+        
+        return solve_bundle_adjustment_scipy(
+            camera_params, 
+            points_3d, 
+            camera_indices, 
+            point_indices, 
+            points_2d, 
+            verbose
+        )

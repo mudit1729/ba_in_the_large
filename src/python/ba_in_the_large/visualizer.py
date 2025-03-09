@@ -52,8 +52,8 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
     fig = plt.figure(figsize=(15, 10))
     
     # Add the visualization angle text above the plots
-    fig.text(0.5, 0.95, 'Viewing Angle: Initially set to Camera 0 perspective', 
-             ha='center', va='center', fontsize=12)
+    title_text = fig.text(0.5, 0.95, 'Bundle Adjustment 3D Reconstruction', 
+             ha='center', va='center', fontsize=14, weight='bold')
     
     # Before optimization subplot
     ax1 = fig.add_subplot(121, projection='3d')
@@ -172,9 +172,9 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
         ax1.view_init(elev=initial_elev, azim=initial_azim)
         ax2.view_init(elev=initial_elev, azim=initial_azim)  # Use same viewing angle for both
         
-        # Update the viewing angle text
-        fig.text(0.5, 0.95, f'Viewing Angle: Elev={initial_elev:.1f}°, Azim={initial_azim:.1f}° (Camera 0 perspective)', 
-                ha='center', va='center', fontsize=12)
+        # Add view angle info below the main title
+        angle_text = f'Viewing Angle: Elev={initial_elev:.1f}°, Azim={initial_azim:.1f}° (Camera 0 perspective)'
+        fig.text(0.5, 0.91, angle_text, ha='center', va='center', fontsize=11, style='italic')
         
     except (ImportError, ValueError):
         # Fallback if we can't compute the viewing angle
@@ -190,8 +190,13 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
                 elev, azim = ax1.elev, ax1.azim
                 # Apply the same view to the second plot
                 ax2.view_init(elev=elev, azim=azim)
-                # Update the viewing angle text
-                fig.texts[0].set_text(f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°')
+                # Update the viewing angle text by adding a new one and removing old
+                # Clear previous angle texts (except the main title)
+                for txt in fig.texts[1:]:
+                    txt.remove()
+                # Add updated angle text
+                angle_text = f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°'
+                fig.text(0.5, 0.91, angle_text, ha='center', va='center', fontsize=11, style='italic')
                 # Redraw the figure
                 fig.canvas.draw_idle()
         elif event.inaxes == ax2:
@@ -200,8 +205,13 @@ def visualize_reconstruction(initial_params, final_params, n_cameras, n_points):
                 elev, azim = ax2.elev, ax2.azim
                 # Apply the same view to the first plot
                 ax1.view_init(elev=elev, azim=azim)
-                # Update the viewing angle text
-                fig.texts[0].set_text(f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°')
+                # Update the viewing angle text by adding a new one and removing old
+                # Clear previous angle texts (except the main title)
+                for txt in fig.texts[1:]:
+                    txt.remove()
+                # Add updated angle text
+                angle_text = f'Viewing Angle: Elev={elev:.1f}°, Azim={azim:.1f}°'
+                fig.text(0.5, 0.91, angle_text, ha='center', va='center', fontsize=11, style='italic')
                 # Redraw the figure
                 fig.canvas.draw_idle()
     
