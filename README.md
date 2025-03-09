@@ -16,8 +16,9 @@ Bundle adjustment is a key component in computer vision applications like 3D rec
 - High-performance C++ implementation using Ceres Solver (10-12x faster)
 - Support for large datasets with thousands of cameras and points
 - Interactive 3D visualization with GPU acceleration using Plotly
-- 3D camera representations as triangular meshes for better interpretation
-- Synchronized interactive views with real-time angle information
+- Toggleable camera visualization with 3D triangular camera meshes
+- Optimized for large datasets with thousands of cameras and points
+- Interactive controls for seamless comparison of before/after reconstruction
 - Command-line interface with comprehensive options
 - Performance comparison between Python and C++ implementations
 - HTML export capabilities for sharing results
@@ -128,12 +129,14 @@ The visualization includes:
 ### Visualization Controls
 
 #### Plotly (GPU-accelerated)
-- **Rotate**: Click and drag
+- **Toggle Cameras**: Use the "Show Cameras" checkbox in the legend to show/hide cameras
+- **Rotate**: Click and drag for 3D rotation
 - **Zoom**: Mouse wheel or pinch gesture
 - **Pan**: Right-click and drag
 - **Reset View**: Double-click
 - **Full-screen**: Click the expand icon
-- Visualization works in any modern browser
+- **Export**: Save visualization as PNG
+- Visualization works in any modern browser with WebGL support
 
 #### Matplotlib
 - **Rotate**: Click and drag with the mouse
